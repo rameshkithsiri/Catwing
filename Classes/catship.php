@@ -4,8 +4,9 @@ class catship{
 	protected $_cat2;
 	protected $_db;
 
-	public function __construct(POD $db){
+	public function __construct(PDO $db){
 		$this->_db=$db;
+		session_start();
 		if(isset($_SESSION['catid'])) $user = $_SESSION['catid'];
 		if(isset($_COOKIE['catid'])) $user = $_COOKIE['catid'];
 		$this->_cat1 = $user;
@@ -21,6 +22,8 @@ class catship{
 
 	public function update($action){
 		try{
+			if($action=="unblock"||$action=="stranger") $action="";
+			if($action=='reply')$action='close';
 			$this->_db->beginTransaction();
 			$stmt = $this->_db->prepare('UPDATE `catship` SET `catship_cat1type`= IF(`catship_cat1`=?,?,`catship_cat1type`),`catship_cat2type`= IF(`catship_cat2`=?,?,`catship_cat2type`) WHERE (`catship_cat1`=? AND `catship_cat2`=?) OR (`catship_cat2`=? AND `catship_cat1`=?) ');
 			$stmt->execute(array($this->_cat1 ,$action, $this->_cat1 ,$action, $this->_cat1 , $this->_cat2, $this->_cat1 , $this->_cat2));
@@ -59,6 +62,16 @@ class catship{
 		if($this->_cat1 == $this->_cat2) $type="me";
 		return $type;
 
+	}
+
+//Get list of catships
+
+	public function getList($status,$page=1,$keyword=''){
+		$stmt = $this->_db->prepare('CALL getCatshipList(?,?,?,?,?)');
+		$stmt->execute(array($status,$this->_cat1,$this->_cat2,$page,$keyword));
+		$list = $stmt->fetch();
+		if($list) return $list;
+		return FALSE;
 	}
 }
 ?>
