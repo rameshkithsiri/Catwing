@@ -42,5 +42,37 @@ class purr{
 		return TRUE;
 	}
 
+// Load new purr
+
+	public function update(){
+		$stmt = $this->_db->prepare('SELECT `purr_id` ,`purr_content`,`purr_time` ,`purr_clip` FROM `purr` WHERE (`purr_sender`=? AND `purr_receiver`=? AND `purr_seen` IS NULL) OR (`purr_sender`=? AND `purr_receiver`=? AND `purr_seen` IS NULL);');
+		$stmt->execute(array($this->_cat1,$this->_cat2,$this->_cat2,$this->_cat1));
+		$purrs = $stmt->fetchAll();
+		$stmt = $this->_db->prepare('UPDATE `purr` SET `purr_seen`=now() WHERE  (`purr_sender`=? AND `purr_receiver`=? AND `purr_seen` IS NULL) OR (`purr_sender`=? AND `purr_receiver`=? AND `purr_seen` IS NULL);');
+		$stmt->execute(array($this->_cat1,$this->_cat2,$this->_cat2,$this->_cat1));
+		if($purrs){
+			try{
+				$stmt = $this->_db->prepare('CALL getPurrClip(?)');
+				$i=0;
+				$this->_db->beginTransaction();
+				foreach($purrs as $purr){
+					if($purr['purr_clip']){
+						$stmt->execute(array($purr['purr_id']));
+						$clips=$stmt->fetch();
+						$purrs[$i]['purr_clip']=$clips;
+					}
+					$i=$i+1;
+				}
+				$this->_db->commit();
+			} catch (Exception $e){
+			    $this->_db->rollback();
+			    throw $e;
+			}
+			return $purrs;
+		}
+		return FALSE;
+
+	}
+
 }
 ?>
